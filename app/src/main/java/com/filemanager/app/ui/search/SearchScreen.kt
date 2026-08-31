@@ -1,5 +1,6 @@
 package com.filemanager.app.ui.search
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,11 +13,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,6 +50,8 @@ fun SearchScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    BackHandler { onBack() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,7 +68,7 @@ fun SearchScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("btn_back")) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 }
             )
@@ -121,7 +124,7 @@ private fun SearchResultRow(item: FileItem, onClick: () -> Unit) {
             FileType.FOLDER -> Icons.Filled.Folder
             FileType.IMAGE -> Icons.Filled.Image
             FileType.TEXT -> Icons.Filled.Description
-            else -> Icons.Filled.InsertDriveFile
+            else -> Icons.AutoMirrored.Filled.InsertDriveFile
         }
         Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(28.dp))
         Column {

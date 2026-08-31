@@ -1,5 +1,6 @@
 package com.filemanager.app.ui.viewer
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -7,7 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,23 +32,24 @@ import com.filemanager.app.data.FileRepository
 import com.filemanager.app.domain.FileItem
 import com.filemanager.app.domain.FileType
 import com.filemanager.app.domain.type
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewerScreen(
     item: FileItem,
-    repository: FileRepository = FileRepository(),
     onBack: () -> Unit
 ) {
+    val repository = remember { FileRepository() }
+
+    BackHandler { onBack() }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(item.name, maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 }
             )
@@ -83,9 +85,9 @@ private fun TextViewer(item: FileItem, repository: FileRepository) {
     var content by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(item.path) {
-        content = withContext(Dispatchers.IO) {
-            runCatching { repository.readTextFile(item.file) }.getOrElse { "Не удалось прочитать файл: ${it.message}" }
-        }
+        // readTextFile already moves to Dispatchers.IO.
+        content = runCatching { repository.readTextFile(item.file) }
+            .getOrElse { "Не удалось прочитать файл: ${it.message}" }
     }
 
     val text = content

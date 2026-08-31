@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -38,6 +38,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,8 +64,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.filemanager.app.R
+import com.filemanager.app.data.StorageVolumes
 import com.filemanager.app.domain.FileItem
 import com.filemanager.app.domain.FileType
 import com.filemanager.app.domain.type
@@ -109,7 +112,20 @@ fun BrowserScreen(
                     if (viewModel.isSelectionMode) {
                         Text("${state.selectedPaths.size}")
                     } else {
-                        Text(state.currentDirectory.name.ifEmpty { stringResource(R.string.storage_internal) })
+                        // File.name is "0" for /storage/emulated/0 and "" for "/",
+                        // neither of which means anything to the user.
+                        val path = state.currentDirectory.absolutePath
+                        Text(
+                            text = when (path) {
+                                StorageVolumes.internalStorage().absolutePath ->
+                                    stringResource(R.string.storage_internal)
+
+                                "/" -> "/"
+                                else -> state.currentDirectory.name
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 },
                 navigationIcon = {
@@ -117,7 +133,7 @@ fun BrowserScreen(
                         if (viewModel.isSelectionMode) viewModel.clearSelection()
                         else if (!viewModel.navigateUp()) onExit()
                     }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
@@ -180,6 +196,17 @@ fun BrowserScreen(
                                 modifier = Modifier.semantics { testTagsAsResourceId = true }
                             ) {
                                 SortOrderMenuItems(viewModel) { showMenu = false }
+                                HorizontalDivider()
+                                state.storageRoots.forEach { root ->
+                                    DropdownMenuItem(
+                                        text = { Text(root.label) },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.openStorageRoot(root)
+                                        }
+                                    )
+                                }
+                                HorizontalDivider()
                                 DropdownMenuItem(
                                     text = { Text("Настройки") },
                                     onClick = {
@@ -331,8 +358,15 @@ private fun FileRow(
         } else {
             Icon(imageVector = iconFor(item), contentDescription = null, modifier = Modifier.size(28.dp))
         }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = item.name, style = MaterialTheme.typography.bodyLarge)
+        // weight, not fillMaxWidth: a long name must shrink to fit the row
+        // instead of pushing the size label off screen.
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
             if (!item.isDirectory) {
                 Text(
                     text = formatFileSize(item.size),
@@ -348,7 +382,7 @@ private fun iconFor(item: FileItem) = when (item.type()) {
     FileType.FOLDER -> Icons.Filled.Folder
     FileType.IMAGE -> Icons.Filled.Image
     FileType.TEXT -> Icons.Filled.Description
-    else -> Icons.Filled.InsertDriveFile
+    else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }
 
 @OptIn(ExperimentalComposeUiApi::class)

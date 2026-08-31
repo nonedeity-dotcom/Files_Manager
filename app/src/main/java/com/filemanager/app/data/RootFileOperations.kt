@@ -3,11 +3,15 @@
  *
  * Root shell command execution ported and adapted from Amaze File Manager
  * (https://github.com/TeamAmaze/AmazeFileManager), specifically
- * filesystem/root/base/IRootCommand.kt, filesystem/root/DeleteFileCommand.kt,
- * filesystem/root/MoveFileCommand.kt and filesystem/RootHelper.java's
- * getCommandLineString() sanitizer.
+ * filesystem/root/base/IRootCommand.kt, filesystem/root/DeleteFileCommand.kt
+ * and filesystem/root/MoveFileCommand.kt.
  * Copyright (C) 2014-2026 Arpit Khurana, Vishal Nehra, Emmanuel Messulam,
  * Raymond Lai and Contributors.
+ *
+ * Amaze's getCommandLineString() sanitizer is deliberately NOT used here: it
+ * strips characters outside an ASCII whitelist, which turns a path such as
+ * /storage/emulated/0/Документы into /storage/emulated/0/ and would point
+ * `rm -rf` at the whole volume. Arguments are POSIX-quoted instead.
  *
  * This file is part of Files Manager.
  *
@@ -26,56 +30,84 @@
  */
 package com.filemanager.app.data
 
+import com.filemanager.app.util.shellQuote
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/** One entry of a directory listed through the root shell. */
+data class RootEntry(val name: String, val isDirectory: Boolean)
+
 /**
- * Wraps libsu shell execution for operations that plain java.io access can't
- * reach (system partitions, other apps' private dirs on rooted devices).
- * Used as a fallback when a normal filesystem call fails.
+ * Wraps libsu shell execution for paths plain java.io can't reach — system
+ * partitions and other apps' private directories on rooted devices. Used as a
+ * fallback after a normal filesystem call fails.
  */
 object RootFileOperations {
-
-    private val ARG_WHITELIST = Regex("[^a-zA-Z0-9@/:}{\\-_=+.,'\"\\s]")
-
-    /** Strips characters that could break out of a quoted shell argument. */
-    private fun sanitize(path: String): String = path.replace(ARG_WHITELIST, "")
-
-    private fun quoted(path: String): String = "\"${sanitize(path)}\""
 
     suspend fun isRootAvailable(): Boolean = withContext(Dispatchers.IO) {
         runCatching { Shell.getShell().isRoot }.getOrDefault(false)
     }
 
     suspend fun deleteRecursively(target: File): Boolean = withContext(Dispatchers.IO) {
-        runCommand("rm -rf ${quoted(target.absolutePath)}")
+        runCommand("rm -rf ${shellQuote(target.absolutePath)}")
     }
 
     suspend fun move(source: File, destination: File): Boolean = withContext(Dispatchers.IO) {
-        runCommand("mv ${quoted(source.absolutePath)} ${quoted(destination.absolutePath)}")
+        runCommand(
+            "mv -f ${shellQuote(source.absolutePath)} ${shellQuote(destination.absolutePath)}"
+        )
     }
 
     suspend fun copy(source: File, destination: File): Boolean = withContext(Dispatchers.IO) {
-        val flag = if (source.isDirectory) "-r" else ""
-        runCommand("cp $flag ${quoted(source.absolutePath)} ${quoted(destination.absolutePath)}")
+        val recursive = if (source.isDirectory) "-r " else ""
+        runCommand(
+            "cp $recursive${shellQuote(source.absolutePath)} " +
+                shellQuote(destination.absolutePath)
+        )
     }
 
     suspend fun mkdir(target: File): Boolean = withContext(Dispatchers.IO) {
-        runCommand("mkdir -p ${quoted(target.absolutePath)}")
+        runCommand("mkdir -p ${shellQuote(target.absolutePath)}")
     }
 
-    suspend fun rename(source: File, destination: File): Boolean =
-        move(source, destination)
+    suspend fun rename(source: File, destination: File): Boolean = move(source, destination)
 
     suspend fun chmod(target: File, octalMode: String): Boolean = withContext(Dispatchers.IO) {
-        runCommand("chmod $octalMode ${quoted(target.absolutePath)}")
+        runCommand("chmod $octalMode ${shellQuote(target.absolutePath)}")
     }
 
+    /**
+     * Lists a directory the app can't read directly. `ls -p` marks directories
+     * with a trailing slash, so entries stay navigable even when stat() is
+     * denied to the app's own uid.
+     *
+     * @return the entries, or null when root is unavailable or the command failed.
+     */
+    suspend fun listDirectory(directory: File): List<RootEntry>? = withContext(Dispatchers.IO) {
+        if (!hasRoot()) return@withContext null
+        val quoted = shellQuote(directory.absolutePath)
+        val result = Shell.cmd("ls -Ap $quoted").exec()
+        val lines = if (result.isSuccess) result.out else {
+            val fallback = Shell.cmd("ls -ap $quoted").exec()
+            if (!fallback.isSuccess) return@withContext null
+            fallback.out
+        }
+        lines.asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it != "." && it != ".." && it != "./" && it != "../" }
+            .map { entry ->
+                val isDirectory = entry.endsWith("/")
+                RootEntry(name = entry.removeSuffix("/"), isDirectory = isDirectory)
+            }
+            .toList()
+    }
+
+    private fun hasRoot(): Boolean = runCatching { Shell.getShell().isRoot }.getOrDefault(false)
+
     private fun runCommand(command: String): Boolean {
-        if (!Shell.getShell().isRoot) return false
-        val result = Shell.cmd(command).exec()
-        return result.isSuccess
+        if (!hasRoot()) return false
+        return Shell.cmd(command).exec().isSuccess
     }
 }

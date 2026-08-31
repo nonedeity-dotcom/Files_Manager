@@ -1,12 +1,13 @@
 package com.filemanager.app.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
@@ -47,6 +48,8 @@ fun SettingsScreen(
     var rootEnabled by remember { mutableStateOf(false) }
     var rootStatus by remember { mutableStateOf<Boolean?>(null) }
 
+    BackHandler { onBack() }
+
     LaunchedEffect(Unit) {
         settings.showHidden.collect { showHidden = it }
     }
@@ -60,7 +63,7 @@ fun SettingsScreen(
                 title = { Text("Настройки") },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("btn_back")) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 }
             )

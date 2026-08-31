@@ -1,28 +1,32 @@
 package com.filemanager.app.ui.browser
 
 import android.app.Application
-import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.filemanager.app.data.ArchiveRepository
 import com.filemanager.app.data.AppSettings
+import com.filemanager.app.data.ArchiveRepository
 import com.filemanager.app.data.FileRepository
+import com.filemanager.app.data.StorageRoot
+import com.filemanager.app.data.StorageVolumes
 import com.filemanager.app.data.VaultRepository
 import com.filemanager.app.domain.ClipboardMode
 import com.filemanager.app.domain.ClipboardState
 import com.filemanager.app.domain.FileItem
 import com.filemanager.app.domain.FileOperationResult
 import com.filemanager.app.domain.SortOrder
+import com.filemanager.app.util.uniqueDestination
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
 data class BrowserUiState(
-    val currentDirectory: File = Environment.getExternalStorageDirectory(),
+    val currentDirectory: File = StorageVolumes.internalStorage(),
     val items: List<FileItem> = emptyList(),
     val isLoading: Boolean = true,
     val sortOrder: SortOrder = SortOrder.NAME_ASC,
@@ -30,7 +34,8 @@ data class BrowserUiState(
     val clipboard: ClipboardState? = null,
     val message: String? = null,
     val showHidden: Boolean = false,
-    val rootEnabled: Boolean = false
+    val rootEnabled: Boolean = false,
+    val storageRoots: List<StorageRoot> = emptyList()
 )
 
 class BrowserViewModel(application: Application) : AndroidViewModel(application) {
@@ -40,19 +45,28 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     private val vaultRepository = VaultRepository(application)
     private val archiveRepository = ArchiveRepository()
 
-    private val rootDirectory: File = Environment.getExternalStorageDirectory()
-
-    private val _uiState = MutableStateFlow(BrowserUiState(currentDirectory = rootDirectory))
+    private val _uiState = MutableStateFlow(BrowserUiState())
     val uiState: StateFlow<BrowserUiState> = _uiState.asStateFlow()
 
     private val backStack = ArrayDeque<File>()
 
     init {
+        loadCurrentDirectory()
         viewModelScope.launch {
-            val showHidden = settings.showHidden.first()
-            val rootEnabled = settings.rootEnabled.first()
-            _uiState.update { it.copy(showHidden = showHidden, rootEnabled = rootEnabled) }
-            loadCurrentDirectory()
+            val roots = withContext(Dispatchers.IO) { StorageVolumes.roots() }
+            _uiState.update { it.copy(storageRoots = roots) }
+        }
+        // Settings are shared with the settings screen, so keep observing them:
+        // reading once would leave the browser stale after a toggle there.
+        viewModelScope.launch {
+            combine(settings.showHidden, settings.rootEnabled) { showHidden, rootEnabled ->
+                showHidden to rootEnabled
+            }.collect { (showHidden, rootEnabled) ->
+                val changed = _uiState.value.showHidden != showHidden ||
+                    _uiState.value.rootEnabled != rootEnabled
+                _uiState.update { it.copy(showHidden = showHidden, rootEnabled = rootEnabled) }
+                if (changed) loadCurrentDirectory()
+            }
         }
     }
 
@@ -65,6 +79,11 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
             backStack.addLast(_uiState.value.currentDirectory)
             navigateTo(item.file)
         }
+    }
+
+    fun openStorageRoot(root: StorageRoot) {
+        backStack.addLast(_uiState.value.currentDirectory)
+        navigateTo(root.directory)
     }
 
     fun navigateUp(): Boolean {
@@ -81,13 +100,14 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     fun refresh() = loadCurrentDirectory()
 
     private fun loadCurrentDirectory() {
-        val directory = _uiState.value.currentDirectory
+        val state = _uiState.value
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             val items = repository.listChildren(
-                directory,
-                _uiState.value.sortOrder,
-                _uiState.value.showHidden
+                directory = state.currentDirectory,
+                sortOrder = state.sortOrder,
+                showHidden = state.showHidden,
+                allowRoot = state.rootEnabled
             )
             _uiState.update { it.copy(items = items, isLoading = false) }
         }
@@ -99,13 +119,10 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun setShowHidden(show: Boolean) {
-        _uiState.update { it.copy(showHidden = show) }
         viewModelScope.launch { settings.setShowHidden(show) }
-        loadCurrentDirectory()
     }
 
     fun setRootEnabled(enabled: Boolean) {
-        _uiState.update { it.copy(rootEnabled = enabled) }
         viewModelScope.launch { settings.setRootEnabled(enabled) }
     }
 
@@ -134,7 +151,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val result = repository.createFolder(
                 _uiState.value.currentDirectory,
-                name,
+                name.trim(),
                 _uiState.value.rootEnabled
             )
             handleResult(result)
@@ -143,7 +160,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
 
     fun rename(item: FileItem, newName: String) {
         viewModelScope.launch {
-            val result = repository.rename(item.file, newName, _uiState.value.rootEnabled)
+            val result = repository.rename(item.file, newName.trim(), _uiState.value.rootEnabled)
             handleResult(result)
         }
     }
@@ -199,11 +216,13 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     fun archiveSelected() {
         val targets = selectedItems().map { it.file }
         if (targets.isEmpty()) return
-        val destination = _uiState.value.currentDirectory
-        val archiveName = if (targets.size == 1) "${targets.first().name}.zip" else "archive.zip"
+        val destinationDir = _uiState.value.currentDirectory
+        val baseName = if (targets.size == 1) "${targets.first().name}.zip" else "archive.zip"
         clearSelection()
         viewModelScope.launch {
-            val result = archiveRepository.createZip(targets, File(destination, archiveName))
+            // Never silently overwrite an archive that's already there.
+            val archive = uniqueDestination(destinationDir, baseName)
+            val result = archiveRepository.createZip(targets, archive)
             handleResult(result)
         }
     }

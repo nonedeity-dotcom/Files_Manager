@@ -1,5 +1,6 @@
 package com.filemanager.app.ui.permission
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -84,12 +85,15 @@ fun PermissionScreen(onGranted: () -> Unit) {
         Button(
             onClick = {
                 attemptedRequest = true
-                val intent = try {
-                    StoragePermission.createManageStorageIntent(context)
-                } catch (e: Exception) {
-                    StoragePermission.createFallbackManageStorageIntent()
+                // Building the intent never fails — launching it does, when no
+                // activity on the device handles the per-app settings screen.
+                try {
+                    launcher.launch(StoragePermission.createManageStorageIntent(context))
+                } catch (e: ActivityNotFoundException) {
+                    runCatching {
+                        launcher.launch(StoragePermission.createFallbackManageStorageIntent())
+                    }
                 }
-                launcher.launch(intent)
             },
             modifier = Modifier
                 .padding(top = 24.dp)

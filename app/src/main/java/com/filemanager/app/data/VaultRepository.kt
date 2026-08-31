@@ -25,11 +25,19 @@ class VaultRepository(context: Context) {
     suspend fun addToVault(source: File): Boolean = withContext(Dispatchers.IO) {
         if (!source.isFile) return@withContext false
         val encrypted = File(vaultDir, "${source.name}.$VAULT_EXTENSION")
-        runCatching {
-            VaultCrypto.encryptFile(source, encrypted)
-            source.delete()
-        }.onFailure { encrypted.delete() }
+        val encryptedOk = runCatching { VaultCrypto.encryptFile(source, encrypted) }
+            .onFailure { encrypted.delete() }
             .isSuccess
+        if (!encryptedOk) return@withContext false
+
+        // The point of the vault is that the readable copy is gone. If it can't
+        // be removed, roll back rather than leaving the plaintext behind while
+        // reporting success.
+        if (!source.delete()) {
+            encrypted.delete()
+            return@withContext false
+        }
+        true
     }
 
     suspend fun restoreFromVault(vaultFile: File, destinationDir: File): Boolean =

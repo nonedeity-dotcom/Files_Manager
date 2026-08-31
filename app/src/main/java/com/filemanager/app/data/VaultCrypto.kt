@@ -89,7 +89,15 @@ object VaultCrypto {
     suspend fun decryptFile(source: File, destination: File): Unit = withContext(Dispatchers.IO) {
         source.inputStream().use { input ->
             val iv = ByteArray(GCM_IV_LENGTH_BYTES)
-            require(input.read(iv) == GCM_IV_LENGTH_BYTES) { "Vault file is corrupted" }
+            // A single read() can come up short even mid-file; keep going until
+            // the IV is complete, otherwise decryption fails on a valid file.
+            var ivRead = 0
+            while (ivRead < iv.size) {
+                val read = input.read(iv, ivRead, iv.size - ivRead)
+                if (read < 0) break
+                ivRead += read
+            }
+            require(ivRead == GCM_IV_LENGTH_BYTES) { "Vault file is corrupted" }
 
             val cipher = Cipher.getInstance(ALGO_TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))

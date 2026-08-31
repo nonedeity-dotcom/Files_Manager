@@ -1,5 +1,6 @@
 package com.filemanager.app.ui.vault
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -42,6 +43,8 @@ fun VaultScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    BackHandler { onBack() }
+
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbarHostState.showSnackbar(it)
@@ -56,7 +59,7 @@ fun VaultScreen(
                 title = { Text("Приватное хранилище") },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("btn_back")) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 }
             )
