@@ -22,11 +22,16 @@ import com.filemanager.app.ui.browser.BrowserViewModel
 import com.filemanager.app.ui.permission.PermissionScreen
 import com.filemanager.app.ui.search.SearchScreen
 import com.filemanager.app.ui.search.SearchViewModel
+import com.filemanager.app.ui.settings.SettingsScreen
+import com.filemanager.app.ui.vault.VaultScreen
+import com.filemanager.app.ui.vault.VaultViewModel
 import com.filemanager.app.ui.viewer.ViewerScreen
 
 private sealed class Screen {
     data object Browser : Screen()
     data object Search : Screen()
+    data object Settings : Screen()
+    data object Vault : Screen()
     data class Viewer(val item: FileItem) : Screen()
 }
 
@@ -62,6 +67,7 @@ private fun FileManagerRoot() {
             viewModel = browserViewModel,
             onOpenFile = { item -> screen = Screen.Viewer(item) },
             onOpenSearch = { screen = Screen.Search },
+            onOpenSettings = { screen = Screen.Settings },
             onExit = { activity?.finish() }
         )
         is Screen.Search -> {
@@ -83,5 +89,16 @@ private fun FileManagerRoot() {
             item = current.item,
             onBack = { screen = Screen.Browser }
         )
+        is Screen.Settings -> SettingsScreen(
+            onOpenVault = { screen = Screen.Vault },
+            onBack = { screen = Screen.Browser }
+        )
+        is Screen.Vault -> {
+            val vaultViewModel: VaultViewModel = viewModel()
+            VaultScreen(
+                viewModel = vaultViewModel,
+                onBack = { screen = Screen.Settings }
+            )
+        }
     }
 }

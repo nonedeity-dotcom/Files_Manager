@@ -61,6 +61,8 @@ dependencies {
 
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.github.topjohnwu.libsu:core:5.2.2")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

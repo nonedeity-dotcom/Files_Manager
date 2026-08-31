@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
@@ -26,10 +27,12 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -69,6 +72,7 @@ fun BrowserScreen(
     viewModel: BrowserViewModel,
     onOpenFile: (FileItem) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
     onExit: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -123,6 +127,17 @@ fun BrowserScreen(
                         IconButton(onClick = { viewModel.cutSelectedToClipboard() }) {
                             Icon(Icons.Filled.ContentCut, contentDescription = stringResource(R.string.action_move))
                         }
+                        IconButton(onClick = { viewModel.addSelectedToVault() }) {
+                            Icon(Icons.Filled.Lock, contentDescription = stringResource(R.string.action_add_to_vault))
+                        }
+                        IconButton(onClick = { viewModel.archiveSelected() }) {
+                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.action_archive))
+                        }
+                        if (viewModel.canExtractSelection()) {
+                            IconButton(onClick = { viewModel.extractSelected() }) {
+                                Icon(Icons.Filled.Unarchive, contentDescription = stringResource(R.string.action_extract))
+                            }
+                        }
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                         }
@@ -148,6 +163,13 @@ fun BrowserScreen(
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 SortOrderMenuItems(viewModel) { showMenu = false }
+                                DropdownMenuItem(
+                                    text = { Text("Настройки") },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenSettings()
+                                    }
+                                )
                             }
                         }
                     }

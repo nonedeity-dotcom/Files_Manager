@@ -15,6 +15,9 @@
     <string name="action_confirm">Готово</string>
     <string name="action_paste">Вставить</string>
     <string name="action_select_all">Выбрать все</string>
+    <string name="action_add_to_vault">В хранилище</string>
+    <string name="action_archive">Архивировать</string>
+    <string name="action_extract">Извлечь</string>
 
     <string name="dialog_delete_title">Удалить выбранное?</string>
     <string name="dialog_delete_message">Это действие нельзя отменить.</string>
