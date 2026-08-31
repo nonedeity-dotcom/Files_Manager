@@ -22,12 +22,12 @@ class FileRepository {
     private fun comparator(sortOrder: SortOrder): Comparator<FileItem> {
         val byFolderFirst = compareByDescending<FileItem> { it.isDirectory }
         val secondary = when (sortOrder) {
-            SortOrder.NAME_ASC -> compareBy { it.name.lowercase() }
-            SortOrder.NAME_DESC -> compareByDescending { it.name.lowercase() }
-            SortOrder.DATE_DESC -> compareByDescending { it.lastModified }
-            SortOrder.DATE_ASC -> compareBy { it.lastModified }
-            SortOrder.SIZE_DESC -> compareByDescending { it.size }
-            SortOrder.SIZE_ASC -> compareBy { it.size }
+            SortOrder.NAME_ASC -> compareBy<FileItem> { it.name.lowercase() }
+            SortOrder.NAME_DESC -> compareByDescending<FileItem> { it.name.lowercase() }
+            SortOrder.DATE_DESC -> compareByDescending<FileItem> { it.lastModified }
+            SortOrder.DATE_ASC -> compareBy<FileItem> { it.lastModified }
+            SortOrder.SIZE_DESC -> compareByDescending<FileItem> { it.size }
+            SortOrder.SIZE_ASC -> compareBy<FileItem> { it.size }
         }
         return byFolderFirst.then(secondary)
     }
