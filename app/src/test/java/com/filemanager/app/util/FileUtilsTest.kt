@@ -80,4 +80,40 @@ class FileUtilsTest {
     fun `regular file is not a symlink`() {
         assertFalse(temp.newFile("plain.txt").isSymlink())
     }
+
+    @Test
+    fun `android data and obb are recognised as platform-restricted`() {
+        assertTrue(isPlatformRestrictedStoragePath("/storage/emulated/0/Android/data"))
+        assertTrue(isPlatformRestrictedStoragePath("/storage/emulated/0/Android/data/com.app"))
+        assertTrue(isPlatformRestrictedStoragePath("/storage/emulated/0/Android/obb"))
+        // Removable volumes carry the same restriction.
+        assertTrue(isPlatformRestrictedStoragePath("/storage/1A2B-3C4D/Android/data"))
+    }
+
+    @Test
+    fun `ordinary folders are not restricted`() {
+        assertFalse(isPlatformRestrictedStoragePath("/storage/emulated/0/Download"))
+        assertFalse(isPlatformRestrictedStoragePath("/storage/emulated/0/Android/media"))
+    }
+
+    /**
+     * /storage/emulated is a FUSE view that blocks Android/data even for root;
+     * the real files are under /data/media, which root can read.
+     */
+    @Test
+    fun `emulated storage paths are rewritten to their real location`() {
+        assertEquals(
+            "/data/media/0/Android/data/com.app",
+            rootAccessiblePath("/storage/emulated/0/Android/data/com.app")
+        )
+        assertEquals("/data/media/0", rootAccessiblePath("/storage/emulated/0"))
+        assertEquals("/data/media/10/Download", rootAccessiblePath("/storage/emulated/10/Download"))
+    }
+
+    @Test
+    fun `paths outside emulated storage are left alone`() {
+        assertEquals("/data/local/tmp", rootAccessiblePath("/data/local/tmp"))
+        assertEquals("/storage/1A2B-3C4D/Movies", rootAccessiblePath("/storage/1A2B-3C4D/Movies"))
+        assertEquals("/system/etc", rootAccessiblePath("/system/etc"))
+    }
 }

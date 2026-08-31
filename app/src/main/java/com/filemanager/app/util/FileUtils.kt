@@ -64,3 +64,29 @@ fun uniqueDestination(directory: File, name: String): File {
 }
 
 private const val MAX_NAME_ATTEMPTS = 999
+
+/**
+ * True for the directories Android 11+ hides from every app, even one holding
+ * MANAGE_EXTERNAL_STORAGE: Android/data and Android/obb on any volume.
+ *
+ * listFiles() on these returns an empty array rather than null, so "no access"
+ * is indistinguishable from "empty" without checking the path.
+ */
+fun isPlatformRestrictedStoragePath(path: String): Boolean =
+    path.contains("/Android/data") || path.contains("/Android/obb")
+
+/**
+ * Rewrites a /storage/emulated/<user> path to its real location under
+ * /data/media/<user>.
+ *
+ * /storage/emulated is a FUSE view that enforces the Android/data restriction
+ * for root shells too; the underlying files are readable at /data/media.
+ * Paths that aren't emulated storage (SD cards, system paths) are unchanged.
+ */
+fun rootAccessiblePath(path: String): String {
+    val match = EMULATED_STORAGE.matchEntire(path) ?: return path
+    val (user, rest) = match.destructured
+    return "/data/media/$user$rest"
+}
+
+private val EMULATED_STORAGE = Regex("^/storage/emulated/(\\d+)(/.*)?$")

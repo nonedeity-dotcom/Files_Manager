@@ -30,6 +30,7 @@
  */
 package com.filemanager.app.data
 
+import com.filemanager.app.util.rootAccessiblePath
 import com.filemanager.app.util.shellQuote
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
@@ -51,31 +52,31 @@ object RootFileOperations {
     }
 
     suspend fun deleteRecursively(target: File): Boolean = withContext(Dispatchers.IO) {
-        runCommand("rm -rf ${shellQuote(target.absolutePath)}")
+        runCommand("rm -rf ${quotedRootPath(target)}")
     }
 
     suspend fun move(source: File, destination: File): Boolean = withContext(Dispatchers.IO) {
         runCommand(
-            "mv -f ${shellQuote(source.absolutePath)} ${shellQuote(destination.absolutePath)}"
+            "mv -f ${quotedRootPath(source)} ${quotedRootPath(destination)}"
         )
     }
 
     suspend fun copy(source: File, destination: File): Boolean = withContext(Dispatchers.IO) {
         val recursive = if (source.isDirectory) "-r " else ""
         runCommand(
-            "cp $recursive${shellQuote(source.absolutePath)} " +
-                shellQuote(destination.absolutePath)
+            "cp $recursive${quotedRootPath(source)} " +
+                quotedRootPath(destination)
         )
     }
 
     suspend fun mkdir(target: File): Boolean = withContext(Dispatchers.IO) {
-        runCommand("mkdir -p ${shellQuote(target.absolutePath)}")
+        runCommand("mkdir -p ${quotedRootPath(target)}")
     }
 
     suspend fun rename(source: File, destination: File): Boolean = move(source, destination)
 
     suspend fun chmod(target: File, octalMode: String): Boolean = withContext(Dispatchers.IO) {
-        runCommand("chmod $octalMode ${shellQuote(target.absolutePath)}")
+        runCommand("chmod $octalMode ${quotedRootPath(target)}")
     }
 
     /**
@@ -87,7 +88,7 @@ object RootFileOperations {
      */
     suspend fun listDirectory(directory: File): List<RootEntry>? = withContext(Dispatchers.IO) {
         if (!hasRoot()) return@withContext null
-        val quoted = shellQuote(directory.absolutePath)
+        val quoted = quotedRootPath(directory)
         val result = Shell.cmd("ls -Ap $quoted").exec()
         val lines = if (result.isSuccess) result.out else {
             val fallback = Shell.cmd("ls -ap $quoted").exec()
@@ -103,6 +104,14 @@ object RootFileOperations {
             }
             .toList()
     }
+
+    /**
+     * Quotes a path for the shell, rewritten to the location root can actually
+     * reach: /storage/emulated is a FUSE view that blocks Android/data even for
+     * root, while /data/media holds the real files.
+     */
+    private fun quotedRootPath(file: File): String =
+        shellQuote(rootAccessiblePath(file.absolutePath))
 
     private fun hasRoot(): Boolean = runCatching { Shell.getShell().isRoot }.getOrDefault(false)
 

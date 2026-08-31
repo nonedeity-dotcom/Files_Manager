@@ -35,7 +35,8 @@ data class BrowserUiState(
     val message: String? = null,
     val showHidden: Boolean = false,
     val rootEnabled: Boolean = false,
-    val storageRoots: List<StorageRoot> = emptyList()
+    val storageRoots: List<StorageRoot> = emptyList(),
+    val accessDenied: Boolean = false
 )
 
 class BrowserViewModel(application: Application) : AndroidViewModel(application) {
@@ -103,13 +104,19 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         val state = _uiState.value
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            val items = repository.listChildren(
+            val listing = repository.listChildren(
                 directory = state.currentDirectory,
                 sortOrder = state.sortOrder,
                 showHidden = state.showHidden,
                 allowRoot = state.rootEnabled
             )
-            _uiState.update { it.copy(items = items, isLoading = false) }
+            _uiState.update {
+                it.copy(
+                    items = listing.items,
+                    accessDenied = listing.accessDenied,
+                    isLoading = false
+                )
+            }
         }
     }
 

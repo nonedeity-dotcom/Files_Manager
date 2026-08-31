@@ -3,6 +3,7 @@ package com.filemanager.app.data
 import com.filemanager.app.domain.FileItem
 import com.filemanager.app.domain.FileOperationResult
 import com.filemanager.app.domain.SortOrder
+import com.filemanager.app.util.isPlatformRestrictedStoragePath
 import com.filemanager.app.util.isSameOrInside
 import com.filemanager.app.util.isSymlink
 import com.filemanager.app.util.safeCanonicalPath
@@ -15,6 +16,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
+/**
+ * Contents of a directory, plus whether the platform refused to show them.
+ * An empty listing and a blocked one look identical otherwise.
+ */
+data class DirectoryListing(
+    val items: List<FileItem>,
+    val accessDenied: Boolean = false
+)
+
 class FileRepository {
 
     suspend fun listChildren(
@@ -22,24 +32,37 @@ class FileRepository {
         sortOrder: SortOrder,
         showHidden: Boolean = false,
         allowRoot: Boolean = false
-    ): List<FileItem> =
+    ): DirectoryListing =
         withContext(Dispatchers.IO) {
             val children = directory.listFiles()
-            val items = when {
-                children != null -> children.map { FileItem(it) }
-                // Unreadable by the app (a system directory, say) — retry via root.
-                allowRoot -> RootFileOperations.listDirectory(directory)
-                    ?.map { entry ->
-                        val file = File(directory, entry.name)
-                        FileItem(file = file, isDirectory = entry.isDirectory)
-                    }
-                    ?: emptyList()
+            var items = children?.map { FileItem(it) } ?: emptyList()
 
-                else -> emptyList()
+            // Android 11+ hides Android/data and Android/obb from every app, and
+            // it does so by returning an EMPTY array rather than null — so a
+            // null check alone never reaches the root fallback here.
+            val blockedByPlatform = children == null ||
+                (items.isEmpty() && isPlatformRestrictedStoragePath(directory.absolutePath))
+
+            var servedByRoot = false
+            if (items.isEmpty() && allowRoot) {
+                val rootEntries = RootFileOperations.listDirectory(directory)
+                if (!rootEntries.isNullOrEmpty()) {
+                    items = rootEntries.map { entry ->
+                        FileItem(
+                            file = File(directory, entry.name),
+                            isDirectory = entry.isDirectory
+                        )
+                    }
+                    servedByRoot = true
+                }
             }
-            items
-                .filter { showHidden || !it.name.startsWith(".") }
-                .sortedWith(comparator(sortOrder))
+
+            DirectoryListing(
+                items = items
+                    .filter { showHidden || !it.name.startsWith(".") }
+                    .sortedWith(comparator(sortOrder)),
+                accessDenied = blockedByPlatform && !servedByRoot
+            )
         }
 
     private fun comparator(sortOrder: SortOrder): Comparator<FileItem> {

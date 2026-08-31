@@ -24,6 +24,9 @@
     <string name="dialog_rename_title">Новое имя</string>
 
     <string name="empty_folder">Папка пуста</string>
+    <string name="access_denied_title">Нет доступа к этой папке</string>
+    <string name="access_denied_android_data">Начиная с Android 11 система закрывает папки Android/data и Android/obb для всех приложений, даже с разрешением на доступ ко всем файлам. Прочитать их можно только с root-доступом — включите его в настройках.</string>
+    <string name="access_denied_generic">Система не разрешает приложению читать эту папку. Включите root-доступ в настройках, чтобы попробовать через root.</string>
     <string name="search_hint">Поиск файлов на устройстве</string>
     <string name="search_empty">Ничего не найдено</string>
     <string name="search_searching">Поиск…</string>

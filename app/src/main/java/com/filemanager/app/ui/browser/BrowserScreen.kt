@@ -64,10 +64,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.filemanager.app.R
 import com.filemanager.app.data.StorageVolumes
+import com.filemanager.app.util.isPlatformRestrictedStoragePath
 import com.filemanager.app.domain.FileItem
 import com.filemanager.app.domain.FileType
 import com.filemanager.app.domain.type
@@ -234,13 +236,19 @@ fun BrowserScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             if (state.items.isEmpty() && !state.isLoading) {
-                Text(
-                    text = stringResource(R.string.empty_folder),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                // "Empty" and "the system won't show you this" look identical in
+                // a file list, so say which one it is.
+                if (state.accessDenied) {
+                    AccessDeniedMessage(directoryPath = state.currentDirectory.absolutePath)
+                } else {
+                    Text(
+                        text = stringResource(R.string.empty_folder),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.items, key = { it.path }) { item ->
@@ -309,6 +317,43 @@ fun BrowserScreen(
                     Text(stringResource(R.string.action_cancel))
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun AccessDeniedMessage(directoryPath: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Lock,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = stringResource(R.string.access_denied_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = stringResource(
+                if (isPlatformRestrictedStoragePath(directoryPath)) {
+                    R.string.access_denied_android_data
+                } else {
+                    R.string.access_denied_generic
+                }
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+            textAlign = TextAlign.Center
         )
     }
 }
