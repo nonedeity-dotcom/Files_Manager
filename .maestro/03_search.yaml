@@ -1,0 +1,35 @@
+appId: com.filemanager.app
+---
+- launchApp:
+    clearState: true
+
+# Create a folder so search has something reliable to find
+- tapOn:
+    id: "fab_create_folder"
+- tapOn:
+    id: "name_input_field"
+- inputText: "MaestroSearchTarget"
+- tapOn:
+    id: "name_input_confirm"
+- assertVisible:
+    id: "file_row_MaestroSearchTarget"
+
+- tapOn:
+    id: "btn_search"
+- tapOn:
+    id: "search_field"
+- inputText: "MaestroSearchTarget"
+- assertVisible:
+    id: "search_result_MaestroSearchTarget"
+- tapOn:
+    id: "btn_back"
+- assertVisible:
+    id: "fab_create_folder"
+
+# Cleanup
+- longPressOn:
+    id: "file_row_MaestroSearchTarget"
+- tapOn:
+    id: "btn_delete_selection"
+- tapOn:
+    id: "delete_confirm_button"

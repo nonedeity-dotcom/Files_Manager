@@ -1,0 +1,8 @@
+appId: com.filemanager.app
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "fab_create_folder"
+- assertVisible:
+    id: "btn_search"

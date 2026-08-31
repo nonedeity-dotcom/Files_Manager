@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.filemanager.app.data.AppSettings
 import com.filemanager.app.data.RootFileOperations
 import kotlinx.coroutines.launch
@@ -58,7 +59,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("Настройки") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag("btn_back")) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = null)
                     }
                 }
@@ -75,7 +76,8 @@ fun SettingsScreen(
                         checked = showHidden,
                         onCheckedChange = { checked ->
                             scope.launch { settings.setShowHidden(checked) }
-                        }
+                        },
+                        modifier = Modifier.testTag("switch_show_hidden")
                     )
                 }
             )
@@ -102,7 +104,8 @@ fun SettingsScreen(
                                     rootStatus = RootFileOperations.isRootAvailable()
                                 }
                             }
-                        }
+                        },
+                        modifier = Modifier.testTag("switch_root")
                     )
                 }
             )
@@ -110,6 +113,7 @@ fun SettingsScreen(
             ListItem(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("settings_open_vault")
                     .clickable(onClick = onOpenVault),
                 headlineContent = { Text("Приватное хранилище") },
                 supportingContent = { Text("Зашифрованные файлы (AES-256, ключ в Android Keystore)") },

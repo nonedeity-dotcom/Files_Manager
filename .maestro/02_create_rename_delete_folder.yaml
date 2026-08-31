@@ -1,0 +1,39 @@
+appId: com.filemanager.app
+---
+- launchApp:
+    clearState: true
+
+# Create a folder
+- tapOn:
+    id: "fab_create_folder"
+- tapOn:
+    id: "name_input_field"
+- inputText: "MaestroTestFolder"
+- tapOn:
+    id: "name_input_confirm"
+- assertVisible:
+    id: "file_row_MaestroTestFolder"
+
+# Rename it
+- longPressOn:
+    id: "file_row_MaestroTestFolder"
+- tapOn:
+    id: "btn_rename"
+- tapOn:
+    id: "name_input_field"
+- eraseText
+- inputText: "MaestroTestFolderRenamed"
+- tapOn:
+    id: "name_input_confirm"
+- assertVisible:
+    id: "file_row_MaestroTestFolderRenamed"
+
+# Delete it
+- longPressOn:
+    id: "file_row_MaestroTestFolderRenamed"
+- tapOn:
+    id: "btn_delete_selection"
+- tapOn:
+    id: "delete_confirm_button"
+- assertNotVisible:
+    id: "file_row_MaestroTestFolderRenamed"

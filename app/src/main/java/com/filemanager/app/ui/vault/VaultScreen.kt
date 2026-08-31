@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.filemanager.app.domain.FileItem
 
@@ -54,7 +55,7 @@ fun VaultScreen(
             TopAppBar(
                 title = { Text("Приватное хранилище") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag("btn_back")) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = null)
                     }
                 }

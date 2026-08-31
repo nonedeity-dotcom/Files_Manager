@@ -1,0 +1,32 @@
+appId: com.filemanager.app
+---
+- launchApp:
+    clearState: true
+
+- tapOn:
+    id: "btn_overflow_menu"
+- tapOn:
+    id: "menu_settings"
+- assertVisible:
+    id: "switch_show_hidden"
+- assertVisible:
+    id: "switch_root"
+
+# Toggle hidden files on and back off
+- tapOn:
+    id: "switch_show_hidden"
+- tapOn:
+    id: "switch_show_hidden"
+
+# Open the vault and come back
+- tapOn:
+    id: "settings_open_vault"
+- assertVisible:
+    text: "Приватное хранилище"
+- tapOn:
+    id: "btn_back"
+
+- tapOn:
+    id: "btn_back"
+- assertVisible:
+    id: "fab_create_folder"

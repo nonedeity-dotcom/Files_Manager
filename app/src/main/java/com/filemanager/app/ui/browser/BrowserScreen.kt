@@ -58,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.filemanager.app.R
@@ -138,18 +139,24 @@ fun BrowserScreen(
                                 Icon(Icons.Filled.Unarchive, contentDescription = stringResource(R.string.action_extract))
                             }
                         }
-                        IconButton(onClick = { showDeleteConfirm = true }) {
+                        IconButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier.testTag("btn_delete_selection")
+                        ) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
                         }
                         if (state.selectedPaths.size == 1) {
-                            IconButton(onClick = {
-                                renameTarget = state.items.firstOrNull { it.path in state.selectedPaths }
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    renameTarget = state.items.firstOrNull { it.path in state.selectedPaths }
+                                },
+                                modifier = Modifier.testTag("btn_rename")
+                            ) {
                                 Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.action_rename))
                             }
                         }
                     } else {
-                        IconButton(onClick = onOpenSearch) {
+                        IconButton(onClick = onOpenSearch, modifier = Modifier.testTag("btn_search")) {
                             Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.action_search))
                         }
                         if (state.clipboard != null) {
@@ -158,7 +165,10 @@ fun BrowserScreen(
                             }
                         }
                         Box {
-                            IconButton(onClick = { showMenu = true }) {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                modifier = Modifier.testTag("btn_overflow_menu")
+                            ) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = null)
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -168,7 +178,8 @@ fun BrowserScreen(
                                     onClick = {
                                         showMenu = false
                                         onOpenSettings()
-                                    }
+                                    },
+                                    modifier = Modifier.testTag("menu_settings")
                                 )
                             }
                         }
@@ -178,7 +189,10 @@ fun BrowserScreen(
         },
         floatingActionButton = {
             if (!viewModel.isSelectionMode) {
-                FloatingActionButton(onClick = { showCreateFolderDialog = true }) {
+                FloatingActionButton(
+                    onClick = { showCreateFolderDialog = true },
+                    modifier = Modifier.testTag("fab_create_folder")
+                ) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
             }
@@ -247,10 +261,13 @@ fun BrowserScreen(
             title = { Text(stringResource(R.string.dialog_delete_title)) },
             text = { Text(stringResource(R.string.dialog_delete_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteSelected()
-                    showDeleteConfirm = false
-                }) { Text(stringResource(R.string.action_delete)) }
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSelected()
+                        showDeleteConfirm = false
+                    },
+                    modifier = Modifier.testTag("delete_confirm_button")
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
@@ -291,6 +308,7 @@ private fun FileRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("file_row_${item.name}")
             .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.background)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -337,10 +355,18 @@ private fun NameInputDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                modifier = Modifier.testTag("name_input_field")
+            )
         },
         confirmButton = {
-            TextButton(onClick = { if (text.isNotBlank()) onConfirm(text) }) {
+            TextButton(
+                onClick = { if (text.isNotBlank()) onConfirm(text) },
+                modifier = Modifier.testTag("name_input_confirm")
+            ) {
                 Text(stringResource(R.string.action_confirm))
             }
         },

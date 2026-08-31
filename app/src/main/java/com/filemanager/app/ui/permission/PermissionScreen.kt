@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -90,7 +91,9 @@ fun PermissionScreen(onGranted: () -> Unit) {
                 }
                 launcher.launch(intent)
             },
-            modifier = Modifier.padding(top = 24.dp)
+            modifier = Modifier
+                .padding(top = 24.dp)
+                .testTag("btn_grant_permission")
         ) {
             Text(stringResource(R.string.permission_grant_button))
         }
