@@ -1,7 +1,6 @@
 appId: com.filemanager.app
 ---
-- launchApp:
-    clearState: true
+- launchApp
 
 # Create a folder so search has something reliable to find
 - tapOn:

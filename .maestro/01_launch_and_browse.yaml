@@ -1,7 +1,6 @@
 appId: com.filemanager.app
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - assertVisible:
     id: "fab_create_folder"
 - assertVisible:
