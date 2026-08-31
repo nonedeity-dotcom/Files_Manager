@@ -57,9 +57,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import com.filemanager.app.R
 import com.filemanager.app.domain.FileItem
@@ -67,7 +70,7 @@ import com.filemanager.app.domain.FileType
 import com.filemanager.app.domain.type
 import com.filemanager.app.util.formatFileSize
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun BrowserScreen(
     viewModel: BrowserViewModel,
@@ -171,7 +174,11 @@ fun BrowserScreen(
                             ) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = null)
                             }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                                modifier = Modifier.semantics { testTagsAsResourceId = true }
+                            ) {
                                 SortOrderMenuItems(viewModel) { showMenu = false }
                                 DropdownMenuItem(
                                     text = { Text("Настройки") },
@@ -258,6 +265,7 @@ fun BrowserScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
+            modifier = Modifier.semantics { testTagsAsResourceId = true },
             title = { Text(stringResource(R.string.dialog_delete_title)) },
             text = { Text(stringResource(R.string.dialog_delete_message)) },
             confirmButton = {
@@ -343,6 +351,7 @@ private fun iconFor(item: FileItem) = when (item.type()) {
     else -> Icons.Filled.InsertDriveFile
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun NameInputDialog(
     title: String,
@@ -353,6 +362,7 @@ private fun NameInputDialog(
     var text by remember { mutableStateOf(initialValue) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.semantics { testTagsAsResourceId = true },
         title = { Text(title) },
         text = {
             OutlinedTextField(
