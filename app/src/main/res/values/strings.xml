@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Files Manager</string>
+
+    <string name="permission_title">Доступ ко всем файлам</string>
+    <string name="permission_description">Чтобы просматривать, копировать, перемещать и искать файлы на устройстве, приложению нужен полный доступ к файловой системе.</string>
+    <string name="permission_grant_button">Предоставить доступ</string>
+    <string name="permission_denied_hint">Разрешение не выдано. Включите его в системных настройках.</string>
+
+    <string name="action_search">Поиск</string>
+    <string name="action_copy">Копировать</string>
+    <string name="action_move">Переместить</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_confirm">Готово</string>
+    <string name="action_paste">Вставить</string>
+    <string name="action_select_all">Выбрать все</string>
+
+    <string name="dialog_delete_title">Удалить выбранное?</string>
+    <string name="dialog_delete_message">Это действие нельзя отменить.</string>
+    <string name="dialog_rename_title">Новое имя</string>
+
+    <string name="empty_folder">Папка пуста</string>
+    <string name="search_hint">Поиск файлов на устройстве</string>
+    <string name="search_empty">Ничего не найдено</string>
+    <string name="search_searching">Поиск…</string>
+
+    <string name="storage_internal">Внутренняя память</string>
+</resources>
