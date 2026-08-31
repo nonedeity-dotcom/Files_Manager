@@ -239,7 +239,10 @@ fun BrowserScreen(
                 // "Empty" and "the system won't show you this" look identical in
                 // a file list, so say which one it is.
                 if (state.accessDenied) {
-                    AccessDeniedMessage(directoryPath = state.currentDirectory.absolutePath)
+                    AccessDeniedMessage(
+                        directoryPath = state.currentDirectory.absolutePath,
+                        rootEnabled = state.rootEnabled
+                    )
                 } else {
                     Text(
                         text = stringResource(R.string.empty_folder),
@@ -322,7 +325,7 @@ fun BrowserScreen(
 }
 
 @Composable
-private fun AccessDeniedMessage(directoryPath: String) {
+private fun AccessDeniedMessage(directoryPath: String, rootEnabled: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -344,10 +347,14 @@ private fun AccessDeniedMessage(directoryPath: String) {
         )
         Text(
             text = stringResource(
-                if (isPlatformRestrictedStoragePath(directoryPath)) {
-                    R.string.access_denied_android_data
-                } else {
-                    R.string.access_denied_generic
+                when {
+                    // Root is already on and still couldn't read it — telling the
+                    // user to enable root would be a dead end.
+                    rootEnabled -> R.string.access_denied_root_failed
+                    isPlatformRestrictedStoragePath(directoryPath) ->
+                        R.string.access_denied_android_data
+
+                    else -> R.string.access_denied_generic
                 }
             ),
             style = MaterialTheme.typography.bodyMedium,

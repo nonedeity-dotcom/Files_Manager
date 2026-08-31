@@ -34,6 +34,9 @@ import com.filemanager.app.data.AppSettings
 import com.filemanager.app.data.RootFileOperations
 import kotlinx.coroutines.launch
 
+/** What we currently know about root on this device. */
+private enum class RootStatus { Unknown, Checking, Available, Unavailable }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -46,7 +49,7 @@ fun SettingsScreen(
 
     var showHidden by remember { mutableStateOf(false) }
     var rootEnabled by remember { mutableStateOf(false) }
-    var rootStatus by remember { mutableStateOf<Boolean?>(null) }
+    var rootStatus by remember { mutableStateOf<RootStatus>(RootStatus.Unknown) }
 
     BackHandler { onBack() }
 
@@ -55,6 +58,21 @@ fun SettingsScreen(
     }
     LaunchedEffect(Unit) {
         settings.rootEnabled.collect { rootEnabled = it }
+    }
+    // Verify whenever the switch is on, including on a fresh visit: checking
+    // only inside onCheckedChange left the screen showing the generic hint
+    // after a restart, with no way to tell whether root actually works.
+    LaunchedEffect(rootEnabled) {
+        if (!rootEnabled) {
+            rootStatus = RootStatus.Unknown
+            return@LaunchedEffect
+        }
+        rootStatus = RootStatus.Checking
+        rootStatus = if (RootFileOperations.isRootAvailable()) {
+            RootStatus.Available
+        } else {
+            RootStatus.Unavailable
+        }
     }
 
     Scaffold(
@@ -90,9 +108,15 @@ fun SettingsScreen(
                 supportingContent = {
                     Text(
                         when (rootStatus) {
-                            null -> "Используется для файлов вне обычного доступа (при наличии root на устройстве)"
-                            true -> "Root доступен"
-                            false -> "Root недоступен на этом устройстве"
+                            RootStatus.Unknown ->
+                                "Позволяет читать папки, закрытые системой, — например Android/data. " +
+                                    "Нужен root на устройстве."
+
+                            RootStatus.Checking -> "Проверяем root-доступ…"
+                            RootStatus.Available -> "Root-доступ работает"
+                            RootStatus.Unavailable ->
+                                "Root недоступен: устройство не рутовано или в доступе отказано. " +
+                                    "Закрытые системой папки открыть не получится."
                         }
                     )
                 },
@@ -101,12 +125,7 @@ fun SettingsScreen(
                     Switch(
                         checked = rootEnabled,
                         onCheckedChange = { checked ->
-                            scope.launch {
-                                settings.setRootEnabled(checked)
-                                if (checked) {
-                                    rootStatus = RootFileOperations.isRootAvailable()
-                                }
-                            }
+                            scope.launch { settings.setRootEnabled(checked) }
                         },
                         modifier = Modifier.testTag("switch_root")
                     )
